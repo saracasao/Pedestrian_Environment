@@ -10,7 +10,7 @@ We share a framework built on Unreal Engine and AirSim to easily generate dynami
   
  ## Requirements
   
- The project has been test in Ubuntu 20.04. 
+ The project has been tested in Ubuntu 20.04. 
  - Unreal Engine 4.27
  - AirSim 1.7 
   

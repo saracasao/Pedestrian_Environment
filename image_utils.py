@@ -168,7 +168,7 @@ def save_images(images_info, frame_index_key, cam, config):
     """
 
     time_stamp = str(images_info['timestamp'])
-    final_name = frame_index_key + '_' + time_stamp
+    final_name = str(frame_index_key) + '_' + time_stamp
 
     path_save = config.path_save + '/' + cam
 

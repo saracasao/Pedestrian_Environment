@@ -1,5 +1,6 @@
 import airsim
 import json
+import math
 import numpy as np
 
 from scipy.spatial.transform import Rotation as R
@@ -18,6 +19,8 @@ class MultiRotor:
 
         self.cam_states = []
         self.states = []
+
+        self.extrinsics_camera = None
 
     def arm(self, client):
         """ Arm drone
@@ -103,6 +106,27 @@ class MultiRotor:
         f = client.simGetFocalLength(camera_name, vehicle_name=self.name)
         return f
 
+    def get_focal_length_px(self, fov, frame):
+        """
+        :param cam_name (str): camera name
+               frame (array image)
+        :return: focal lenght in pixels
+        """
+        f_fov = self.get_f_fov(fov)
+        width_frame = np.shape(frame)[1]
+
+        f_px = width_frame / f_fov
+        return f_px
+
+    @staticmethod
+    def get_f_fov(fov):
+        """"Intermediate state to obtain focal length in px f_px = (width / (2 * math.tan((fov / 2) * (math.pi / 180)))
+            with fov in degrees
+        :param fov degrees
+        :return: denominator of focal length in pixels calculation"""
+        den = 2 * math.tan((fov / 2) * (math.pi / 180))
+        return den
+
     def get_gps_data(self, client):
         gps_data = client.getGpsData(vehicle_name=self.name)
         return gps_data
@@ -139,11 +163,34 @@ class MultiRotor:
 
         return translation, rot_matrix, E
 
-    def update_state_cam_info(self, client, frame_index):
+    def set_extrinsic_camera(self, state):
+        """ Get extrinsic of the system
+        :param client: airsim.VehicleClient
+        :return: translation (list) = [[x],[y],[z]]
+                 rot_matrix (3x3 matrix)
+                 extrinsic matrix (4x3 matrix)"""
+        # Get rotation matrix
+        rotation = state.pose.orientation
+        quaternions = [rotation.x_val, rotation.y_val, rotation.z_val, rotation.w_val]
+        rot = R.from_quat(quaternions)
+        rot_matrix = rot.as_matrix()
+
+        # Get translation
+        translation = [[state.pose.position.x_val],
+                       [state.pose.position.y_val],
+                       [state.pose.position.z_val]]
+        E = np.append(rot_matrix, translation, axis=1)
+
+        assert np.shape(E)[0] == 3 and np.shape(E)[1] == 4
+        self.extrinsics_camera = translation, rot_matrix
+
+    def update_state_cam_info(self, client, frame_index, rgb):
         """ Update dictionary of camera states
         :param client: airsim.VehicleClient
                frame_index (int) """
         state = self.cam_state(client)
+        self.set_extrinsic_camera(state)
+
         cam_position = state.pose.position
         cam_orientation = state.pose.orientation
 
@@ -156,10 +203,12 @@ class MultiRotor:
         orient_y = cam_orientation.y_val
         orient_z = cam_orientation.z_val
 
+        f_fov = self.get_focal_length_px(state.fov, rgb)
         focal_length = self.get_focal_length(client)
 
         info_state = {'frame_index': frame_index,
                       'focal_length': focal_length,
+                      'f_fov': f_fov,
                       'pos_x': pos_x,
                       'pos_y': pos_y,
                       'pos_z': pos_z,

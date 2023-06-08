@@ -1,4 +1,5 @@
 import cv2
+from image_utils import check_path
 
 
 def draw_bboxes(info_pedestrians, images, cam, dict_names):
@@ -22,14 +23,16 @@ def draw_bboxes(info_pedestrians, images, cam, dict_names):
         width = xmax - xmin
         identity = dict_names[ped_name]
 
-        cv2.rectangle(images[cam]['rgb'], (xmin, ymin), (xmax, ymax), color_bbox, 2)
-        cv2.putText(images[cam]['rgb'], str(identity), (int(xmin + width/2 - 10), ymin),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, name, 2)
-    cv2.putText(images[cam]['rgb'], str(cam), (30, images[cam]['rgb'].shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+        cv2.rectangle(images[cam]['rgb'], (xmin, ymin), (xmax, ymax), color_bbox, 5)
+        # cv2.putText(images[cam]['rgb'], str(identity), (int(xmin + width/2 - 10), ymin),
+        #             cv2.FONT_HERSHEY_SIMPLEX, 3, name, 5)
+        cv2.putText(images[cam]['rgb'], str(identity), (int(xmin + width/8 - 5), ymin),
+                    cv2.FONT_HERSHEY_SIMPLEX, 3, name, 5)
+    cv2.putText(images[cam]['rgb'], str(cam), (30, images[cam]['rgb'].shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 5)
     return images
 
 
-def visualize(cameras, images, frame_index, gt2d_pedestrians=None, dict_names=None):
+def visualize(cameras, images, frame_index, gt2d_pedestrians=None, dict_names=None, path_to_save=None):
     """ Visualize rgb images captured
     :param cameras (list str): camera names
            frame_index (int)
@@ -76,6 +79,13 @@ def visualize(cameras, images, frame_index, gt2d_pedestrians=None, dict_names=No
         concatenatedFrames = images[cameras[0]]['rgb']
     cv2.putText(concatenatedFrames, str(frame_index), (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
     cv2.imshow('Frames', concatenatedFrames)
+
+    if path_to_save is not None:
+        check_path(path_to_save)
+        name = str(frame_index)
+        name = name.zfill(4)
+        final_path = path_to_save + '/' + name + '_gt.png'
+        cv2.imwrite(final_path, concatenatedFrames)
 
     k = cv2.waitKey(33)
     if k == 32:

@@ -6,7 +6,7 @@ from Visualization import visualize
 from image_utils import getResponseImages, save_images
 from settings import Configuration
 from pedestrians import get_name_pedestrians, update_gt3d_pedestrian, save_3dgroundTruth, \
-    update_gt2d_pedestrian, save_2dgroundTruth
+    update_gt2d_pedestrian, save_2dgroundTruth, get_gt3d_pedestrian_info
 
 
 """
@@ -82,11 +82,12 @@ def CV_Capture(clients, config, frames_to_capture):
         # Get images from external cameras
         images = getResponseImages(clients, config)
 
+        info_gt3d_pedestrians_scene = get_gt3d_pedestrian_info(client_ref, name_pedestrians)
         captured_pedestrians = []
         for cam in cameras_names:
             # Update 2d pedestrians bbox obtained
             gt2d_pedestrians[cam][frame_index_key] = []
-            gt2d_pedestrians, pedestrians_in_frame = update_gt2d_pedestrian(client_ref, cam, gt2d_pedestrians, frame_index_key, config)
+            gt2d_pedestrians, pedestrians_in_frame = update_gt2d_pedestrian(client_ref, cam, gt2d_pedestrians, info_gt3d_pedestrians_scene, images[cam]['rgb'], frame_index_key, config)
             captured_pedestrians = captured_pedestrians + pedestrians_in_frame
 
             # Save images selected
@@ -94,11 +95,11 @@ def CV_Capture(clients, config, frames_to_capture):
 
         # Update 3d pedestrians position
         captured_pedestrians = set(captured_pedestrians)
-        gt3d_pedestrians = update_gt3d_pedestrian(client_ref, captured_pedestrians, gt3d_pedestrians, frame_index_key)
+        gt3d_pedestrians = update_gt3d_pedestrian(info_gt3d_pedestrians_scene, captured_pedestrians, gt3d_pedestrians, frame_index_key)
 
         # Visualize data
         if config.visualize_images and config.vis_pedestrian_2dGT:
-            visualize(cameras_names, images, frame_index, gt2d_pedestrians, dict_names)
+            visualize(cameras_names, images, frame_index, gt2d_pedestrians, dict_names, path_save + '/GT')
         elif config.visualize_images:
             visualize(cameras_names, images, frame_index)
         frame_index += 1
@@ -109,15 +110,14 @@ def CV_Capture(clients, config, frames_to_capture):
 
 
 if __name__ == "__main__":
-
     # Settings
     save_mode = 'start'  # 'start', 'wait'
-    frames_to_capture = 60
-    name_experiment = 'StaticCamera'
-    img_types = 'RGB'  # 'RGB' , 'RGB-D', 'RGB-DS'
+    frames_to_capture = 500
+    name_experiment = 'TEST_PROJECTIONS'
+    img_types = 'RGB-D'  # 'RGB-D', 'RGB-DS'
 
     # Defining settings
-    config = Configuration(img_types, frames_to_capture, save_mode, name_experiment=name_experiment)
+    config = Configuration(img_types, frames_to_capture, save_mode, name_experiment, visualize_images=True, vis_pedestrian_2dGT=True, save_camera_state=True)
 
     # Initializing Vehicle of AirSim in Unreal
     clients = [airsim.VehicleClient() for _ in range(config.number_cameras)]

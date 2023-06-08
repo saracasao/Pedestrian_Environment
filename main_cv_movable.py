@@ -7,7 +7,7 @@ from image_utils import getResponseImages, save_images
 from camera_drone import MultiRotor
 from settings import Configuration
 from pedestrians import get_name_pedestrians, update_gt3d_pedestrian, save_3dgroundTruth, \
-    update_gt2d_pedestrian, save_2dgroundTruth
+    update_gt2d_pedestrian, save_2dgroundTruth, get_gt3d_pedestrian_info
 
 
 """
@@ -111,24 +111,25 @@ def CV_Capture(clients, uavs, config, frames_to_capture):
         # Get images from external cameras
         images = getResponseImages(clients, config)
 
+        info_gt3d_pedestrians_scene = get_gt3d_pedestrian_info(client_ref, name_pedestrians)
         captured_pedestrians = []
         for i, d_name in enumerate(drone_names):
-            # Update 2d pedestrians bbox obtained
-            gt2d_pedestrians[d_name][frame_index_key] = []
-            gt2d_pedestrians, pedestrians_in_frame = update_gt2d_pedestrian(client_ref, d_name, gt2d_pedestrians, frame_index_key, config)
-            captured_pedestrians = captured_pedestrians + pedestrians_in_frame
-
             # Update drone and camera state
             drone = uavs[i]
-            drone.update_state_cam_info(client_ref, frame_index)
+            drone.update_state_cam_info(client_ref, frame_index, images[d_name]['rgb'])
             drone.update_state_drone_info(client_ref, frame_index)
+
+            # Update 2d pedestrians bbox obtained
+            gt2d_pedestrians[d_name][frame_index_key] = []
+            gt2d_pedestrians, pedestrians_in_frame = update_gt2d_pedestrian(client_ref, d_name, gt2d_pedestrians, info_gt3d_pedestrians_scene, images[d_name]['rgb'], frame_index_key, config, uav=drone)
+            captured_pedestrians = captured_pedestrians + pedestrians_in_frame
 
             # Save images
             save_images(images[d_name], frame_index_key, d_name, config)
 
         # Update 3d pedestrians position
         captured_pedestrians = set(captured_pedestrians)
-        gt3d_pedestrians = update_gt3d_pedestrian(client_ref, captured_pedestrians, gt3d_pedestrians, frame_index_key)
+        gt3d_pedestrians = update_gt3d_pedestrian(info_gt3d_pedestrians_scene, captured_pedestrians, gt3d_pedestrians, frame_index_key)
 
         # Visualize data
         if config.visualize_images and config.vis_pedestrian_2dGT:
@@ -149,14 +150,14 @@ def CV_Capture(clients, uavs, config, frames_to_capture):
 if __name__ == "__main__":
     # Settings
     save_mode = 'start'  # 'start', 'wait'
-    frames_to_capture = 500
+    frames_to_capture = 50
     name_experiment = 'MobileCamera'
-    img_types = 'RGB'  # 'RGB' , 'RGB-D', 'RGB-DS'
-    velocity = 0.5
+    img_types = 'RGB-D'  # 'RGB-D', 'RGB-DS'
+    velocity = 0.3
 
     # Defining settings
     uavs = InitDrones(velocity)
-    config = Configuration(img_types, frames_to_capture, save_mode, name_experiment=name_experiment, external=False, uavs=uavs)
+    config = Configuration(img_types, frames_to_capture, save_mode, name_experiment=name_experiment, external=False, uavs=uavs, visualize_images=True, vis_pedestrian_2dGT=True, save_camera_state=True)
 
     # Initializing Vehicle of AirSim in Unreal
     clients = [airsim.MultirotorClient() for _ in range(config.number_cameras)]

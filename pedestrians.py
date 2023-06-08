@@ -2,6 +2,8 @@ import json
 import pathlib
 import airsim
 
+from reprojection import gt2d_from_gt3d, check_bbox
+
 
 def get_dict_colors():
     """Load color dict for segmentation to assign to each pedestrian
@@ -43,7 +45,7 @@ def get_name_pedestrians(client, ref_struct, segmentation=False):
     return name_pedestrians, dict_names
 
 
-def update_gt3d_pedestrian(client, name_pedestrians, info_pedestrians_3d, frame_index_key):
+def get_gt3d_pedestrian_info(client, name_pedestrians):
     """ Update 3d ground truth of pedestrians presented in the scene
     :param client: airsim.VehicleClient
            name_pedestrians (list str): list of pedestrians names to save 3d information
@@ -51,7 +53,7 @@ def update_gt3d_pedestrian(client, name_pedestrians, info_pedestrians_3d, frame_
            frame_index_key (str): frame index converted to string, e.g., 0000
     :return: info_pedestrians_3d (dict): info_pedestrians_3d[frame_index_key] = [{info_ped1},{info_ped2},...]"""
 
-    info_pedestrians_3d[frame_index_key] = []
+    info_pedestrians_3d = []
     for name_ped in name_pedestrians:
         pose = client.simGetObjectPose(name_ped)
         pos_x = pose.position.x_val
@@ -71,11 +73,46 @@ def update_gt3d_pedestrian(client, name_pedestrians, info_pedestrians_3d, frame_
                 'orient_x': orient_x,
                 'orient_y': orient_y,
                 'orient_z': orient_z}
+        info_pedestrians_3d.append(info)
+    return info_pedestrians_3d
+
+
+def update_gt3d_pedestrian(info_gt3d_pedestrians_scene, name_pedestrians, info_pedestrians_3d, frame_index_key, all_pedestrians=False):
+    """ Update 3d ground truth of pedestrians presented in the scene
+    :param client: airsim.VehicleClient
+           name_pedestrians (list str): list of pedestrians names to save 3d information
+           info_pedestrians_3d (dict): info_pedestrians_3d[frame_index_key] = [{info_ped1},{info_ped2},...]
+           frame_index_key (str): frame index converted to string, e.g., 0000
+    :return: info_pedestrians_3d (dict): info_pedestrians_3d[frame_index_key] = [{info_ped1},{info_ped2},...]"""
+
+    if not all_pedestrians:
+        info_gt3d_pedestrians_scene = [info_gt3d for info_gt3d in info_gt3d_pedestrians_scene if info_gt3d['id'] in name_pedestrians]
+
+    info_pedestrians_3d[frame_index_key] = []
+    for info_gt3d in info_gt3d_pedestrians_scene:
+        name_ped = info_gt3d['id']
+        pos_x = info_gt3d['pos_x']
+        pos_y = info_gt3d['pos_y']
+        pos_z = info_gt3d['pos_z']
+
+        orient_w = info_gt3d['orient_w']
+        orient_x = info_gt3d['orient_x']
+        orient_y = info_gt3d['orient_y']
+        orient_z = info_gt3d['orient_z']
+
+        info = {'id': name_ped,
+                'pos_x': pos_x,
+                'pos_y': pos_y,
+                'pos_z': pos_z,
+                'orient_w': orient_w,
+                'orient_x': orient_x,
+                'orient_y': orient_y,
+                'orient_z': orient_z}
         info_pedestrians_3d[frame_index_key].append(info)
     return info_pedestrians_3d
 
 
-def update_gt2d_pedestrian(client, cam_name, info_pedestrians, frame_index_key, config):
+def update_gt2d_pedestrian(client, cam_name, info_pedestrians, info_gt3d_pedestrians, depth_matrix, frame_index_key, config, uav=None):
     """ Update 2d ground truth of pedestrians presented in the scene
     :param client: airsim.VehicleClient
            name_pedestrians (list str): list of pedestrians names to save 2d information
@@ -84,6 +121,7 @@ def update_gt2d_pedestrian(client, cam_name, info_pedestrians, frame_index_key, 
            config: Configuration Class
     :return: info_pedestrians (dict): info_pedestrians[cam_name][frame_index_key] = [{info_ped1},{info_ped2},...]
              captured_pedestrians (list str): list of pedestrian names detected in the scene"""
+    frame_height, frame_width = depth_matrix.shape[0], depth_matrix.shape[1]
 
     captured_pedestrians = []
     if config.external:
@@ -103,13 +141,22 @@ def update_gt2d_pedestrian(client, cam_name, info_pedestrians, frame_index_key, 
         new_xmin = xmin + int(width/4)
         new_xmax = new_xmin + int(width/2)
 
-        info = {'id': name_ped,
-                'xmin': new_xmin,
-                'ymin': ymin,
-                'xmax': new_xmax,
-                'ymax': ymax}
-        info_pedestrians[cam_name][frame_index_key].append(info)
-        captured_pedestrians.append(name_ped)
+        check, fxmin, fymin, fxmax, fymax = check_bbox(new_xmin, ymin, new_xmax, ymax, frame_width, frame_height)
+        fwidth = fxmax - fxmin
+        fheight = fymax - fymin
+
+        if check and fwidth > 0 and fheight / fwidth < 5:
+            assert fxmin > 0 and fymin > 0 and fxmax > 0 and fymax > 0
+            info = {'id': name_ped,
+                    'xmin': fxmin,
+                    'ymin': fymin,
+                    'xmax': fxmax,
+                    'ymax': fymax}
+            info_pedestrians[cam_name][frame_index_key].append(info)
+            captured_pedestrians.append(name_ped)
+    # AirSim bounding boxes fails time to time -> check if some existing pedestrian does not have bounding box and obtain by 3d position reprojection
+    filling_2dgt = gt2d_from_gt3d(cam_name, info_pedestrians[cam_name][frame_index_key], info_gt3d_pedestrians, depth_matrix, config, uav)
+    info_pedestrians[cam_name][frame_index_key] = info_pedestrians[cam_name][frame_index_key] + filling_2dgt
     return info_pedestrians, captured_pedestrians
 
 

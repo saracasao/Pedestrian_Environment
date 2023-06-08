@@ -117,7 +117,7 @@ class Configuration:
     def get_pose(self, cam_name):
         """Get camera pose
         :param cam_name (str): camera name
-        :return: translation (list) = [[x],[y],[z]]
+        :return: translation (list) = [[x], [y], [z]]
                  rot_matrix (3x3 matrix)"""
         info_cam = self.camera_states[cam_name]
         translation = [[info_cam['pos_x']],

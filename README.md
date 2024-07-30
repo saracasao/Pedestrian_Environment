@@ -24,3 +24,5 @@ We share a framework built on Unreal Engine and AirSim to easily generate dynami
  5. Started UE4Editor from command line: ```~/UnrealEngine-4.27/Engine/Binaries/Linux/UE4Editor```
  6. Clicked More > Browse > /home/scasao/Documents/UnrealProjects/PedestrianEnv/PedestrianEnv.uproject 
  
+ ## Tutorials 
+ [![How to open the project](video_tutorials/airsim_plugin.mp4)]

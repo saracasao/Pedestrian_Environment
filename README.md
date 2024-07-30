@@ -25,7 +25,7 @@ We share a framework built on Unreal Engine and AirSim to easily generate dynami
  6. Clicked More > Browse > /home/scasao/Documents/UnrealProjects/PedestrianEnv/PedestrianEnv.uproject 
  
  ## Tutorials 
-[![How to open the project](video_tutorials/open_project.mp4)]
-[![How to add AirSim plugin to a new Unreal project](video_tutorials/airsim_plugin.mp4)]
-[![How to export tools to another project](video_tutorials/export_tools.mp4)]
+[![How to open the project](video_tutorials/open_project.mp4)]<br /> 
+[![How to add AirSim plugin to a new Unreal project](video_tutorials/airsim_plugin.mp4)]<br /> 
+[![How to export tools to another project](video_tutorials/export_tools.mp4)]<br /> 
 [![How to use the tools](video_tutorials/use_tools.mp4)]

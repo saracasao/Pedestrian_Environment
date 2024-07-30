@@ -1,6 +1,6 @@
 # Framework for Fast Prototyping of Photo-realistic Environments with Multiple Pedestrians
 
-We share a framework built on Unreal Engine and AirSim to easily generate dynamic scenarios with pedestrians. You can download the complete project in [here](https://unizares-my.sharepoint.com/:u:/g/personal/scasao_unizar_es/EaG40MfmXdpCsvvLI-RusbEB8vdpWduyeF-YW3NTu-6B1g?e=c14cez). The project includes: 
+We share a framework built on Unreal Engine and AirSim to easily generate dynamic scenarios with pedestrians. You can download the complete project in [here](https://unizares-my.sharepoint.com/:u:/g/personal/scasao_unizar_es/EU0t68nG85hKsRQp3oqhrU8Bj58UnW1xwzto3GjynvJ7lw?e=C9z7dH). The project includes: 
 - Trajectory plugin with different tools to create custom and random trajectories. 
 - Set of pedestrian models ready-to-used by simply dragging and dropping them into the Unreal world. 
 - Downtown West photo-realistic map that can be found for free download in the Unreal Engine Launcher [weblink](https://www.unrealengine.com/marketplace/en-US/product/6bb93c7515e148a1a0a0ec263db67d5b). In order to work with lighter maps, we create two copies: 
